@@ -46,11 +46,10 @@ htmlcov/
 backend/.env
 
 # Local Databases (seeded automatically on startup)
-backend/foodbridge.db
-backend/foodbridge.db-journal
-backend/foodbridge_checkpoints.db
-backend/foodbridge_checkpoints.db-journal
+backend/foodbridge.db*
+backend/foodbridge_checkpoints.db*
 *.db
+*.db-*
 *.sqlite
 *.sqlite3
 
