@@ -5,6 +5,7 @@ import { Badge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { PickupRequest } from '../types';
 import { getStatusMeta } from '../utils/status';
+import { formatISTTime, formatISTShortTime, formatISTDateTime } from '../utils/time';
 import {
   Truck,
   CheckCircle2,
@@ -262,7 +263,7 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
               </span>
             </div>
             <p className="text-xs text-secondaryText">
-              Proposal Version: <strong className="font-mono text-primaryText">v{p.approval_version}</strong> • Created: {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • System Ref: <span className="font-mono text-forest font-semibold">{p.donation_id}</span>
+              Proposal Version: <strong className="font-mono text-primaryText">v{p.approval_version}</strong> • Created: {formatISTShortTime(p.created_at)} • System Ref: <span className="font-mono text-forest font-semibold">{p.donation_id}</span>
             </p>
           </div>
 
@@ -597,7 +598,7 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
               {isVerifiedMatching ? (
                 <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-white text-brandSuccess border border-[#C7E3D0] font-bold flex items-center gap-1.5 shadow-2xs">
                   <CheckCircle2 className="w-3.5 h-3.5 text-brandSuccess" />
-                  <span>VERIFIED LIVE AT {new Date(verifiedQueryState.query_timestamp).toLocaleTimeString()}</span>
+                  <span>VERIFIED LIVE AT {formatISTTime(verifiedQueryState.query_timestamp)}</span>
                 </span>
               ) : (
                 <span className="text-xs font-mono text-secondaryText">
@@ -646,7 +647,7 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
 
             {p.accepted_at && (
               <div className="text-xs text-secondaryText bg-white p-2.5 rounded border border-borderLine flex items-center justify-between">
-                <span>NGO Acceptance Timestamp: <strong className="font-mono text-primaryText">{new Date(p.accepted_at).toLocaleString()}</strong></span>
+                <span>NGO Acceptance Timestamp: <strong className="font-mono text-primaryText">{formatISTDateTime(p.accepted_at)}</strong></span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-ivory text-forest border border-forest/20 font-mono font-semibold">CONFIRMED IN DB</span>
               </div>
             )}

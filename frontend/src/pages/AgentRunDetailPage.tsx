@@ -5,6 +5,7 @@ import { Badge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { AgentRun } from '../types';
 import { getStatusMeta } from '../utils/status';
+import { formatISTTime } from '../utils/time';
 import {
   Activity,
   ArrowLeft,
@@ -112,9 +113,9 @@ export const AgentRunDetailPage: React.FC<AgentRunDetailPageProps> = ({ runId, o
 
         <div className="flex items-center gap-2 text-xs font-mono text-secondaryText">
           <Clock className="w-3.5 h-3.5 text-forest" />
-          <span>Started: {new Date(run.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+          <span>Started: {formatISTTime(run.started_at)}</span>
           {run.completed_at && (
-            <span>• Completed: {new Date(run.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            <span>• Completed: {formatISTTime(run.completed_at)}</span>
           )}
         </div>
       </div>
@@ -212,7 +213,7 @@ export const AgentRunDetailPage: React.FC<AgentRunDetailPageProps> = ({ runId, o
                     </div>
 
                     <span className="font-mono text-[10px] text-secondaryText">
-                      {new Date(step.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {formatISTTime(step.timestamp)}
                     </span>
                   </div>
 

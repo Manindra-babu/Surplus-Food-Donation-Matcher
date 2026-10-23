@@ -51,7 +51,7 @@ def get_health():
         "status": "healthy",
         "product": PRODUCT_NAME,
         "is_mock_environment": IS_MOCK_ENVIRONMENT,
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
 
 @app.get("/api/config")
@@ -235,7 +235,7 @@ def verify_pickup_status(pickup_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Pickup '{pickup_id}' not found on platform.")
     return {
         "verified": True,
-        "query_timestamp": datetime.datetime.utcnow().isoformat(),
+        "query_timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "retrieved_state": res
     }
 

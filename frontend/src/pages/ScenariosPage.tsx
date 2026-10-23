@@ -4,6 +4,7 @@ import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { ScenarioRunResult } from '../types';
+import { formatISTTime } from '../utils/time';
 import {
   CheckCircle2,
   XCircle,
@@ -238,7 +239,7 @@ export const ScenariosPage: React.FC<ScenariosPageProps> = ({ onNavigate }) => {
           {lastExecutedAt && (
             <div className="text-xs text-secondaryText sm:text-right font-mono flex items-center gap-1.5 sm:block">
               <Clock className="w-3.5 h-3.5 text-forest inline sm:mr-1" />
-              <span>Last Run: {new Date(lastExecutedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              <span>Last Run: {formatISTTime(lastExecutedAt)}</span>
             </div>
           )}
         </div>
@@ -400,7 +401,7 @@ export const ScenariosPage: React.FC<ScenariosPageProps> = ({ onNavigate }) => {
                     <div className="flex items-center gap-2">
                       <FileCode className="w-4 h-4 text-forest flex-shrink-0" />
                       <span className="text-secondaryText">
-                        Evidence Recorded: <strong className="font-mono text-primaryText">{res.agent_run_id}</strong> • Completed: {new Date(res.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        Evidence Recorded: <strong className="font-mono text-primaryText">{res.agent_run_id}</strong> • Completed: {formatISTTime(res.completed_at)}
                       </span>
                     </div>
 

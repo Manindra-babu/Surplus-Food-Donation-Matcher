@@ -5,6 +5,7 @@ import { Badge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { AgentRun } from '../types';
 import { getStatusMeta } from '../utils/status';
+import { formatISTTime } from '../utils/time';
 import {
   Activity,
   CheckCircle2,
@@ -179,7 +180,7 @@ export const AgentRunsPage: React.FC<AgentRunsPageProps> = ({ onNavigate }) => {
                       </td>
 
                       <td className="py-3 px-4 text-secondaryText font-mono text-[11px] whitespace-nowrap">
-                        {new Date(r.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        {formatISTTime(r.started_at)}
                       </td>
 
                       <td className="py-3 px-4 text-right whitespace-nowrap">

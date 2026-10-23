@@ -5,6 +5,7 @@ import { Button } from '../components/common/Button';
 import { api } from '../services/api';
 import { DashboardMetrics, Donation, PickupRequest, AgentRun } from '../types';
 import { getStatusMeta } from '../utils/status';
+import { formatISTShortTime } from '../utils/time';
 import {
   UtensilsCrossed,
   UserCheck,
@@ -142,7 +143,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         type: 'SAFETY_BLOCKED',
         title: 'Food Safety Holding Limit Exceeded',
         referenceId: d.id,
-        detail: `"${d.food_name}" prepared at ${new Date(d.prepared_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} violates FDA Food Code §3-501.19 limits. Dispatch blocked.`,
+        detail: `"${d.food_name}" prepared at ${formatISTShortTime(d.prepared_at)} violates FDA Food Code §3-501.19 limits. Dispatch blocked.`,
         actionLabel: 'Inspect Evidence',
         isScenarioArtifact: isScenario,
         scenarioTag,
@@ -691,7 +692,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                           </Badge>
                         </td>
                         <td className="py-2.5 px-4 text-secondaryText font-mono text-[11px]">
-                          {new Date(r.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatISTShortTime(r.started_at)}
                         </td>
                         <td className="py-2.5 px-4 text-right">
                           <button

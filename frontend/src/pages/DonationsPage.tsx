@@ -5,6 +5,7 @@ import { Badge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { Donation } from '../types';
 import { getStatusMeta } from '../utils/status';
+import { formatISTShortTime } from '../utils/time';
 import {
   UtensilsCrossed,
   PlusCircle,
@@ -180,7 +181,7 @@ export const DonationsPage: React.FC<DonationsPageProps> = ({ onNavigate }) => {
                           )}
                         </div>
                         <div className="text-[10px] text-secondaryText mt-0.5 font-mono">
-                          Prep: {new Date(d.prepared_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          Prep: {formatISTShortTime(d.prepared_at)}
                         </div>
                       </td>
 

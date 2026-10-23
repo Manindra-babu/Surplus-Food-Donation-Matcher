@@ -5,6 +5,7 @@ import { Badge } from '../components/common/Badge';
 import { api } from '../services/api';
 import { Donation, MatchingEvaluationResponse } from '../types';
 import { getStatusMeta } from '../utils/status';
+import { formatISTTime } from '../utils/time';
 import {
   Network,
   Sparkles,
@@ -385,7 +386,7 @@ export const MatchingPage: React.FC<MatchingPageProps> = ({ onNavigate }) => {
                             Stage {step.step_number}: {step.stage}
                           </span>
                           <span className="font-mono text-[10px] text-secondaryText">
-                            {new Date(step.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            {formatISTTime(step.timestamp)}
                           </span>
                         </div>
                         <p className="text-secondaryText text-[11px] leading-relaxed">
