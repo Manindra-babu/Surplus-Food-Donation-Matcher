@@ -131,7 +131,10 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       });
       // Immediately perform independent agent query against mock platform
       const verifyRes = await api.verifyPickupStatus(id);
-      setVerifiedQueryState(verifyRes);
+      setVerifiedQueryState({
+        ...verifyRes,
+        pickup_id: id
+      });
       setActionNotice({
         targetId: id,
         message: `Recipient NGO acceptance confirmed on platform for ${id} (actor: ${ngoActorName}). Independent agent verification confirmed database status: ${verifyRes.retrieved_state.status}.`
@@ -148,7 +151,10 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       setError(null);
       setSelectedPickupId(id);
       const verifyRes = await api.verifyPickupStatus(id);
-      setVerifiedQueryState(verifyRes);
+      setVerifiedQueryState({
+        ...verifyRes,
+        pickup_id: id
+      });
       setActionNotice({
         targetId: id,
         message: `Agent queried mock platform database. State verified: "${verifyRes.retrieved_state.status}" (NGO Accepted: ${verifyRes.retrieved_state.accepted_by_ngo ? 'Yes' : 'No'}, Version: v${verifyRes.retrieved_state.approval_version}).`
@@ -202,7 +208,10 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       setSelectedPickupId(id);
       const res = await api.verifyCompletion(id);
       const verifyRes = await api.verifyPickupStatus(id);
-      setVerifiedQueryState(verifyRes);
+      setVerifiedQueryState({
+        ...verifyRes,
+        pickup_id: id
+      });
       setActionNotice({
         targetId: id,
         message: `Collection successfully verified for ${id}. Status marked Verified Complete in mock platform database.`
@@ -668,35 +677,62 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
 
                       {/* 6. Live Independent Platform State & Audit Evidence */}
                       {(() => {
-                        const isVerifiedMatching = verifiedQueryState && verifiedQueryState.pickup_id === selectedPickup.id;
+                        const isVerifiedMatching = Boolean(
+                          verifiedQueryState && 
+                          (verifiedQueryState.pickup_id === selectedPickup.id || verifiedQueryState.retrieved_state?.pickup_id === selectedPickup.id)
+                        );
                         return (
-                          <div className="pt-3 border-t border-borderLine space-y-2.5">
+                          <div className={`pt-3 border-t border-borderLine space-y-2.5 transition-all ${
+                            isVerifiedMatching ? 'bg-[#F4FAF6] -mx-4 px-4 py-3 rounded-b-[8px] border-t-2 border-t-brandSuccess' : ''
+                          }`}>
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-semibold text-secondaryText uppercase tracking-wider flex items-center gap-1.5">
                                 <Database className="w-3.5 h-3.5 text-forest" />
                                 <span>Independently Verified Platform State (SQLite Ledger)</span>
                               </span>
-                              <span className="text-[10px] font-mono text-secondaryText">
-                                {isVerifiedMatching ? `Verified at ${new Date(verifiedQueryState.query_timestamp).toLocaleTimeString()}` : 'Live Database Record'}
-                              </span>
+                              {isVerifiedMatching ? (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white text-brandSuccess border border-[#C7E3D0] font-bold flex items-center gap-1 shadow-2xs">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-brandSuccess" />
+                                  <span>VERIFIED LIVE AT {new Date(verifiedQueryState.query_timestamp).toLocaleTimeString()}</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-mono text-secondaryText">
+                                  Live Database Record
+                                </span>
+                              )}
                             </div>
 
+                            {/* Direct Feedback Callout when tool executes */}
+                            {isVerifiedMatching && (
+                              <div className="p-2.5 rounded-[6px] bg-white border border-[#C7E3D0] text-xs text-brandSuccess flex items-start gap-2 shadow-2xs">
+                                <CheckCircle2 className="w-4 h-4 text-brandSuccess flex-shrink-0 mt-0.5" />
+                                <div className="space-y-0.5 text-primaryText">
+                                  <strong className="text-brandSuccess block font-heading">
+                                    Agent Query Tool Confirmed Database State:
+                                  </strong>
+                                  <span className="text-secondaryText text-[11px]">
+                                    Direct query against SQLite mock platform confirms dispatch <code className="font-mono font-bold text-primaryText bg-ivory px-1 rounded border border-borderLine">{selectedPickup.id}</code> is currently <strong>{verifiedQueryState.retrieved_state?.status}</strong> (NGO Accepted: {verifiedQueryState.retrieved_state?.accepted_by_ngo ? 'Yes' : 'No'}, Version: v{verifiedQueryState.retrieved_state?.approval_version}).
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                              <div className="p-2 rounded bg-[#FAFBF9] border border-borderLine">
+                              <div className="p-2 rounded bg-white border border-borderLine">
                                 <span className="text-secondaryText block text-[10px] uppercase font-sans">Database Status:</span>
                                 <strong className="text-primaryText">{isVerifiedMatching ? verifiedQueryState.retrieved_state.status : selectedPickup.status}</strong>
                               </div>
-                              <div className="p-2 rounded bg-[#FAFBF9] border border-borderLine">
+                              <div className="p-2 rounded bg-white border border-borderLine">
                                 <span className="text-secondaryText block text-[10px] uppercase font-sans">NGO Acceptance:</span>
                                 <span className={(isVerifiedMatching ? verifiedQueryState.retrieved_state.accepted_by_ngo : selectedPickup.accepted_by_ngo) ? 'text-brandSuccess font-bold' : 'text-brandWarning font-semibold'}>
                                   {(isVerifiedMatching ? verifiedQueryState.retrieved_state.accepted_by_ngo : selectedPickup.accepted_by_ngo) ? 'Accepted by NGO' : 'Awaiting NGO'}
                                 </span>
                               </div>
-                              <div className="p-2 rounded bg-[#FAFBF9] border border-borderLine">
+                              <div className="p-2 rounded bg-white border border-borderLine">
                                 <span className="text-secondaryText block text-[10px] uppercase font-sans">Approval Version:</span>
                                 <span className="text-primaryText font-bold">v{(isVerifiedMatching ? verifiedQueryState.retrieved_state.approval_version : selectedPickup.approval_version)}</span>
                               </div>
-                              <div className="p-2 rounded bg-[#FAFBF9] border border-borderLine">
+                              <div className="p-2 rounded bg-white border border-borderLine">
                                 <span className="text-secondaryText block text-[10px] uppercase font-sans">Physical Handoff:</span>
                                 <span className={(isVerifiedMatching ? verifiedQueryState.retrieved_state.collected_at : selectedPickup.collected_at) ? 'text-brandSuccess font-bold' : 'text-secondaryText'}>
                                   {(isVerifiedMatching ? verifiedQueryState.retrieved_state.collected_at : selectedPickup.collected_at) ? 'Verified Complete' : 'Pending Receipt'}
@@ -705,9 +741,9 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
                             </div>
 
                             {selectedPickup.accepted_at && (
-                              <div className="text-[11px] text-secondaryText bg-ivory/80 p-2 rounded border border-borderLine flex items-center justify-between">
+                              <div className="text-[11px] text-secondaryText bg-white p-2 rounded border border-borderLine flex items-center justify-between">
                                 <span>NGO Acceptance Timestamp: <strong className="font-mono text-primaryText">{new Date(selectedPickup.accepted_at).toLocaleString()}</strong></span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white text-forest border border-forest/20 font-mono">CONFIRMED IN DB</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-ivory text-forest border border-forest/20 font-mono">CONFIRMED IN DB</span>
                               </div>
                             )}
                           </div>
