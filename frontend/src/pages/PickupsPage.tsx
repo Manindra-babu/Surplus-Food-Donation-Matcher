@@ -24,7 +24,9 @@ import {
   Database,
   Activity,
   Building2,
-  Sparkles
+  Sparkles,
+  Maximize2,
+  Columns
 } from 'lucide-react';
 
 interface PickupsPageProps {
@@ -42,6 +44,7 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
     type?: 'success' | 'info';
   } | null>(null);
   const [activeTab, setActiveTab] = useState<'ALL' | 'OPERATIONAL' | 'SCENARIO'>('ALL');
+  const [viewMode, setViewMode] = useState<'PRESENTATION' | 'SPLIT'>('PRESENTATION');
 
   // Location change modal state (TC4)
   const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -229,6 +232,430 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
     filteredPickups[0] ||
     pickups[0];
 
+  const renderDetailCard = (p: PickupRequest) => {
+    const statusMeta = getStatusMeta(p.status, 'pickup');
+    const isPendingApproval = p.status === 'PROPOSED';
+    const isReconfirmationNeeded = p.status === 'RECONFIRMATION_REQUIRED';
+    const isApprovedAwaitingNgo = p.status === 'APPROVED' && !p.accepted_by_ngo;
+    const isNgoAccepted = p.accepted_by_ngo && p.status === 'ACCEPTED_BY_NGO';
+    const isCompleted = p.status === 'VERIFIED_COMPLETE' || p.status === 'COLLECTED';
+
+    const isVerifiedMatching = Boolean(
+      verifiedQueryState && 
+      (verifiedQueryState.pickup_id === p.id || verifiedQueryState.retrieved_state?.pickup_id === p.id)
+    );
+
+    return (
+      <Card padding="lg" className="space-y-6 border-l-4 border-l-forest shadow-sm bg-white">
+        {/* 1. Clear Page Title & Current Status */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-borderLine">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="font-heading font-bold text-xl sm:text-2xl text-primaryText font-mono tracking-tight">
+                {p.id}
+              </h3>
+              <Badge variant={statusMeta.variant} size="md">
+                {statusMeta.label}
+              </Badge>
+              <span className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-ivory text-primaryText border border-borderLine font-bold">
+                v{p.approval_version}
+              </span>
+            </div>
+            <p className="text-xs text-secondaryText">
+              Proposal Version: <strong className="font-mono text-primaryText">v{p.approval_version}</strong> • Created: {new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • System Ref: <span className="font-mono text-forest font-semibold">{p.donation_id}</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono px-3 py-1.5 rounded-[6px] bg-ivory border border-borderLine text-secondaryText">
+              Donation Ref: <strong className="text-primaryText font-mono">{p.donation_id}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* 2. Prominent Location Alteration Warning if applicable (TC4) */}
+        {isReconfirmationNeeded && (
+          <div className="p-4 rounded-[8px] bg-[#FFFBFB] border border-[#F2C2BF] space-y-2 text-xs">
+            <div className="flex items-center gap-2 text-brandError font-bold text-sm">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span>Drop-off Location Altered — Operator Reconfirmation Required (TC4)</span>
+            </div>
+            <p className="text-secondaryText leading-relaxed">
+              The recipient NGO modified the destination facility post-approval. Under governance rules, the previous approval has been <strong>invalidated</strong>, the version incremented to <strong>v{p.approval_version}</strong>, and fresh restaurant sign-off is mandated.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono text-xs">
+              <div className="p-2.5 rounded bg-white border border-borderLine">
+                <span className="text-secondaryText block text-[10px] uppercase font-sans">Original Location:</span>
+                <span className="text-primaryText font-semibold">{p.original_drop_off_location || 'Default Depot'}</span>
+              </div>
+              <div className="p-2.5 rounded bg-white border border-brandError/40">
+                <span className="text-brandError block text-[10px] uppercase font-sans font-bold">New Proposed Location:</span>
+                <span className="text-primaryText font-semibold">{p.drop_off_location}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Workflow Timeline */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-secondaryText uppercase tracking-wider flex items-center gap-1.5">
+              <Activity className="w-4 h-4 text-forest" />
+              <span>Lifecycle State Machine (Deterministic Transition Engine)</span>
+            </span>
+            <span className="text-xs font-semibold text-secondaryText bg-ivory px-2.5 py-0.5 rounded border border-borderLine">
+              {isCompleted ? '✓ Step 4 of 4: Handover Verified' : isNgoAccepted ? 'Step 3 of 4: NGO Confirmed' : p.approved_by ? 'Step 2 of 4: Store Approved' : 'Step 1 of 4: Match Proposed'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            {/* 1. Proposed */}
+            <div className="p-3.5 rounded-[8px] bg-[#FAFBF9] border border-borderLine flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-forest">1. Match Proposed</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-brandSuccess"></span>
+              </div>
+              <span className="text-[11px] text-secondaryText">FDA §3-501.19 Rules Passed</span>
+              <span className="text-xs text-brandSuccess font-bold mt-2 flex items-center gap-1">
+                <CheckCircle2 className="w-4 h-4 text-brandSuccess" /> Complete
+              </span>
+            </div>
+
+            {/* 2. Approval */}
+            <div className={`p-3.5 rounded-[8px] border flex flex-col justify-between ${
+              p.approved_by
+                ? 'bg-[#EBF5EE] border-[#C7E3D0]'
+                : isPendingApproval || isReconfirmationNeeded
+                ? 'bg-[#FDF3E7] border-[#F2D7B3]'
+                : 'bg-white border-borderLine'
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-primaryText">2. Store Sign-Off</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${p.approved_by ? 'bg-brandSuccess' : 'bg-brandWarning animate-pulse'}`}></span>
+              </div>
+              <span className="text-[11px] text-secondaryText">Step 04 Human Gate</span>
+              <span className={`text-xs font-bold mt-2 flex items-center gap-1 ${
+                p.approved_by ? 'text-brandSuccess' : 'text-brandWarning'
+              }`}>
+                {p.approved_by ? (
+                  <><CheckCircle2 className="w-4 h-4 text-brandSuccess" /> Approved</>
+                ) : (
+                  <><Clock className="w-4 h-4 text-brandWarning" /> Awaiting Sign-Off</>
+                )}
+              </span>
+            </div>
+
+            {/* 3. NGO Accept */}
+            <div className={`p-3.5 rounded-[8px] border flex flex-col justify-between ${
+              p.accepted_by_ngo
+                ? 'bg-[#EBF5EE] border-[#C7E3D0]'
+                : 'bg-white border-borderLine'
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-primaryText">3. NGO Accept</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${p.accepted_by_ngo ? 'bg-brandSuccess' : 'bg-slate-300'}`}></span>
+              </div>
+              <span className="text-[11px] text-secondaryText">Counter-Party Dispatch</span>
+              <span className={`text-xs font-bold mt-2 flex items-center gap-1 ${
+                p.accepted_by_ngo ? 'text-brandSuccess' : 'text-secondaryText'
+              }`}>
+                {p.accepted_by_ngo ? (
+                  <><CheckCircle2 className="w-4 h-4 text-brandSuccess" /> Confirmed</>
+                ) : (
+                  <><Clock className="w-4 h-4 text-secondaryText" /> Pending Portal</>
+                )}
+              </span>
+            </div>
+
+            {/* 4. Verified */}
+            <div className={`p-3.5 rounded-[8px] border flex flex-col justify-between ${
+              isCompleted
+                ? 'bg-[#EBF5EE] border-[#C7E3D0]'
+                : 'bg-white border-borderLine'
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-primaryText">4. Handover Verified</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${isCompleted ? 'bg-brandSuccess' : 'bg-slate-300'}`}></span>
+              </div>
+              <span className="text-[11px] text-secondaryText">Driver at Kitchen Door</span>
+              <span className={`text-xs font-bold mt-2 flex items-center gap-1 ${
+                isCompleted ? 'text-brandSuccess' : 'text-secondaryText'
+              }`}>
+                {isCompleted ? (
+                  <><CheckCircle2 className="w-4 h-4 text-brandSuccess" /> Verified Complete</>
+                ) : (
+                  <><Clock className="w-4 h-4 text-secondaryText" /> Pending Driver</>
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Donation & Pickup Summary Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-ivory/70 p-4 rounded-[10px] border border-borderLine">
+          <div className="space-y-1">
+            <span className="text-secondaryText text-xs block flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-forest" /> Target NGO ID:
+            </span>
+            <strong className="text-primaryText font-mono text-base block">{p.ngo_id}</strong>
+          </div>
+          <div className="space-y-1">
+            <span className="text-secondaryText text-xs block flex items-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-forest" /> Quantity Dispatched:
+            </span>
+            <strong className="text-primaryText text-base block">{p.quantity} units</strong>
+          </div>
+          <div className="space-y-1">
+            <span className="text-secondaryText text-xs block flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-forest" /> Drop-off Destination:
+            </span>
+            <div className="text-xs font-semibold text-primaryText truncate mt-0.5" title={p.drop_off_location}>
+              {p.drop_off_location}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <span className="text-secondaryText text-xs block flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-forest" /> Human Approval Audit:
+            </span>
+            <div className="text-xs font-semibold mt-0.5">
+              {p.approved_by ? (
+                <span className="text-brandSuccess flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  {p.approved_by}
+                </span>
+              ) : (
+                <span className="text-brandWarning flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  Not Approved / Invalidated
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Approval & Action Controls Categorized By Actor */}
+        <div className="space-y-4 pt-2 border-t border-borderLine">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-secondaryText uppercase tracking-wider">
+              Lifecycle Control Panel (Role-Separated)
+            </span>
+            <span className="text-xs text-secondaryText bg-ivory px-2.5 py-0.5 rounded border border-borderLine">
+              Simulates Real-World Multi-Party Interaction
+            </span>
+          </div>
+
+          {/* Group A: Human Store Manager Gating (Step 04) */}
+          {(isPendingApproval || isReconfirmationNeeded) && (
+            <div className="p-4 rounded-[10px] bg-amber-50/70 border border-amber-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-amber-900 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-700" />
+                  👤 Store Manager Sign-Off (Mandated by Hackathon Step 04)
+                </span>
+                <Badge variant="warning" size="sm">Human Approval Gate</Badge>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                The AI Agent matched the NGO and formulated this proposal. Before food leaves the store, human approval is mandatory to prevent unauthorized donation of inventory.
+              </p>
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                {isPendingApproval && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleApprove(p.id, p.approval_version)}
+                    icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                  >
+                    Approve Proposal (Sign Off)
+                  </Button>
+                )}
+                {isReconfirmationNeeded && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => handleApprove(p.id, p.approval_version)}
+                    icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                  >
+                    Reconfirm New Location (v{p.approval_version})
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Group B: Recipient NGO Portal Simulation (External Counter-Party) */}
+          {(isApprovedAwaitingNgo || isNgoAccepted) && (
+            <div className="p-4 rounded-[10px] bg-blue-50/60 border border-blue-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-700" />
+                  🏢 Recipient NGO Portal (External Charity Simulation)
+                </span>
+                <Badge variant="info" size="sm">Counter-Party Portal</Badge>
+              </div>
+              <p className="text-xs text-blue-800 leading-relaxed">
+                An AI agent cannot force an outside charity to accept food. In production, the recipient NGO driver receives the dispatch on their app. Use these buttons to simulate their response.
+              </p>
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                {isApprovedAwaitingNgo && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleAcceptByNGO(p.id, p.approval_version)}
+                      icon={<UserCheck className="w-3.5 h-3.5 text-forest" />}
+                    >
+                      NGO Portal: Confirm Acceptance
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRejectByNGO(p.id)}
+                      icon={<XCircle className="w-3.5 h-3.5 text-brandError" />}
+                      title="Recipient NGO declines dispatch in platform portal; donation returned to matching pool"
+                    >
+                      NGO Portal: Decline
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setTargetPickupId(p.id);
+                    setLocationModalOpen(true);
+                  }}
+                  icon={<MapPin className="w-3.5 h-3.5 text-accent" />}
+                  title="Recipient NGO alters drop-off facility in platform portal; triggers approval invalidation"
+                >
+                  NGO Portal: Update Location
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Group C: Autonomous Agent Query Tool & Physical Handover */}
+          <div className="p-4 rounded-[10px] bg-emerald-50/50 border border-emerald-200 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-forest flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-forest" />
+                🤖 AI Agent Tools & Physical Completion
+              </span>
+              <Badge variant="success" size="sm">Agent Tool Calling</Badge>
+            </div>
+            <p className="text-xs text-secondaryText leading-relaxed">
+              The Agent uses its dedicated tool <code className="font-mono text-xs bg-white px-1.5 py-0.5 rounded border border-borderLine">tool_get_pickup_status</code> to poll the platform ledger directly without relying on stale local cache.
+            </p>
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQueryLiveStatus(p.id)}
+                isLoading={isQueryingStatus}
+                icon={<Search className="w-3.5 h-3.5 text-forest" />}
+                title="Run agent independent status-verification tool against Mock Donation Platform"
+              >
+                Agent: Query Platform Status
+              </Button>
+
+              {!isCompleted && (
+                <Button
+                  variant={isNgoAccepted ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => handleVerifyCompletion(p.id)}
+                  icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                  title={
+                    isNgoAccepted
+                      ? 'Verify physical handoff at kitchen door'
+                      : 'State machine guard: Cannot verify collection until recipient NGO accepts dispatch'
+                  }
+                >
+                  Physical Driver Handover (Verify Collection)
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Recipient Acknowledgment Notice */}
+          {isApprovedAwaitingNgo && (
+            <div className="p-3 rounded-[8px] bg-[#FAFBF9] border border-borderLine text-xs text-secondaryText flex items-start gap-2">
+              <Info className="w-4 h-4 text-forest flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Recipient Acknowledgment Pending:</strong> Dispatch is awaiting confirmation in the recipient NGO platform portal. Physical collection verification remains locked until accepted.
+              </span>
+            </div>
+          )}
+
+          {/* 6. Live Independent Platform State & Audit Evidence */}
+          <div className={`pt-3 border-t border-borderLine space-y-3 transition-all ${
+            isVerifiedMatching ? 'bg-[#F4FAF6] -mx-4 px-4 py-3 rounded-b-[8px] border-t-2 border-t-brandSuccess' : ''
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-secondaryText uppercase tracking-wider flex items-center gap-1.5">
+                <Database className="w-4 h-4 text-forest" />
+                <span>Independently Verified Platform State (SQLite Ledger)</span>
+              </span>
+              {isVerifiedMatching ? (
+                <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-white text-brandSuccess border border-[#C7E3D0] font-bold flex items-center gap-1.5 shadow-2xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-brandSuccess" />
+                  <span>VERIFIED LIVE AT {new Date(verifiedQueryState.query_timestamp).toLocaleTimeString()}</span>
+                </span>
+              ) : (
+                <span className="text-xs font-mono text-secondaryText">
+                  Live Database Record
+                </span>
+              )}
+            </div>
+
+            {/* Direct Feedback Callout when tool executes */}
+            {isVerifiedMatching && (
+              <div className="p-3 rounded-[8px] bg-white border border-[#C7E3D0] text-xs text-brandSuccess flex items-start gap-2.5 shadow-2xs">
+                <CheckCircle2 className="w-4 h-4 text-brandSuccess flex-shrink-0 mt-0.5" />
+                <div className="space-y-1 text-primaryText">
+                  <strong className="text-brandSuccess block font-heading text-sm">
+                    Agent Query Tool Confirmed Database State:
+                  </strong>
+                  <span className="text-secondaryText text-xs leading-relaxed">
+                    Direct query against SQLite mock platform confirms dispatch <code className="font-mono font-bold text-primaryText bg-ivory px-1.5 py-0.5 rounded border border-borderLine">{p.id}</code> is currently <strong>{verifiedQueryState.retrieved_state?.status}</strong> (NGO Accepted: {verifiedQueryState.retrieved_state?.accepted_by_ngo ? 'Yes' : 'No'}, Version: v{verifiedQueryState.retrieved_state?.approval_version}).
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+              <div className="p-2.5 rounded bg-white border border-borderLine">
+                <span className="text-secondaryText block text-[10px] uppercase font-sans">Database Status:</span>
+                <strong className="text-primaryText text-sm block mt-0.5">{isVerifiedMatching ? verifiedQueryState.retrieved_state.status : p.status}</strong>
+              </div>
+              <div className="p-2.5 rounded bg-white border border-borderLine">
+                <span className="text-secondaryText block text-[10px] uppercase font-sans">NGO Acceptance:</span>
+                <span className={`text-sm font-bold block mt-0.5 ${(isVerifiedMatching ? verifiedQueryState.retrieved_state.accepted_by_ngo : p.accepted_by_ngo) ? 'text-brandSuccess' : 'text-brandWarning'}`}>
+                  {(isVerifiedMatching ? verifiedQueryState.retrieved_state.accepted_by_ngo : p.accepted_by_ngo) ? 'Accepted by NGO' : 'Awaiting NGO'}
+                </span>
+              </div>
+              <div className="p-2.5 rounded bg-white border border-borderLine">
+                <span className="text-secondaryText block text-[10px] uppercase font-sans">Approval Version:</span>
+                <span className="text-primaryText font-bold text-sm block mt-0.5">v{(isVerifiedMatching ? verifiedQueryState.retrieved_state.approval_version : p.approval_version)}</span>
+              </div>
+              <div className="p-2.5 rounded bg-white border border-borderLine">
+                <span className="text-secondaryText block text-[10px] uppercase font-sans">Physical Handoff:</span>
+                <span className={`text-sm font-bold block mt-0.5 ${(isVerifiedMatching ? verifiedQueryState.retrieved_state.collected_at : p.collected_at) ? 'text-brandSuccess' : 'text-secondaryText'}`}>
+                  {(isVerifiedMatching ? verifiedQueryState.retrieved_state.collected_at : p.collected_at) ? 'Verified Complete' : 'Pending Receipt'}
+                </span>
+              </div>
+            </div>
+
+            {p.accepted_at && (
+              <div className="text-xs text-secondaryText bg-white p-2.5 rounded border border-borderLine flex items-center justify-between">
+                <span>NGO Acceptance Timestamp: <strong className="font-mono text-primaryText">{new Date(p.accepted_at).toLocaleString()}</strong></span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-ivory text-forest border border-forest/20 font-mono font-semibold">CONFIRMED IN DB</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -243,13 +670,45 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onNavigate('/test-scenarios')}
-        >
-          Run Official Scenarios
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* View Mode Switcher: Wide Video View vs Split Sidebar */}
+          <div className="flex items-center p-0.5 rounded-[7px] bg-[#FAFBF9] border border-borderLine text-xs">
+            <button
+              type="button"
+              onClick={() => setViewMode('PRESENTATION')}
+              className={`flex items-center gap-1.5 py-1 px-3 rounded-[5px] text-xs font-semibold transition-all ${
+                viewMode === 'PRESENTATION'
+                  ? 'bg-white text-forest shadow-xs border border-forest/30 font-bold'
+                  : 'text-secondaryText hover:text-primaryText'
+              }`}
+              title="Wide Presentation View (Maximized for Demo Video Recording)"
+            >
+              <Maximize2 className="w-3.5 h-3.5 text-forest" />
+              <span>Wide Video View</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('SPLIT')}
+              className={`flex items-center gap-1.5 py-1 px-3 rounded-[5px] text-xs font-semibold transition-all ${
+                viewMode === 'SPLIT'
+                  ? 'bg-white text-primaryText shadow-xs border border-borderLine font-bold'
+                  : 'text-secondaryText hover:text-primaryText'
+              }`}
+              title="Split Columns with Left Directory"
+            >
+              <Columns className="w-3.5 h-3.5" />
+              <span>Split Sidebar</span>
+            </button>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onNavigate('/test-scenarios')}
+          >
+            Run Official Scenarios
+          </Button>
+        </div>
       </div>
 
       {/* Mock Platform Operational Sandbox Banner */}
@@ -328,20 +787,106 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
             </Button>
           </div>
         </Card>
+      ) : viewMode === 'PRESENTATION' ? (
+        /* WIDE PRESENTATION VIEW (OPTIMIZED FOR VIDEO RECORDING) */
+        <div className="space-y-6">
+          {/* Top Dispatch Selector Bar */}
+          <div className="p-4 rounded-[10px] bg-white border border-borderLine shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-secondaryText uppercase tracking-wider">
+                  Select Dispatch Record:
+                </span>
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-ivory text-primaryText border border-borderLine font-semibold">
+                  {filteredPickups.length} available
+                </span>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center p-0.5 rounded-[7px] bg-[#FAFBF9] border border-borderLine text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('ALL')}
+                  className={`py-1 px-3 rounded-[5px] text-xs font-medium transition-all ${
+                    activeTab === 'ALL'
+                      ? 'bg-white text-primaryText font-bold shadow-xs border border-borderLine'
+                      : 'text-secondaryText hover:text-primaryText'
+                  }`}
+                >
+                  All ({pickups.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('OPERATIONAL')}
+                  className={`py-1 px-3 rounded-[5px] text-xs font-medium transition-all ${
+                    activeTab === 'OPERATIONAL'
+                      ? 'bg-white text-forest font-bold shadow-xs border border-forest/30'
+                      : 'text-secondaryText hover:text-primaryText'
+                  }`}
+                >
+                  Live Demo ({pickups.filter(p => !isScenario(p)).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('SCENARIO')}
+                  className={`py-1 px-3 rounded-[5px] text-xs font-medium transition-all ${
+                    activeTab === 'SCENARIO'
+                      ? 'bg-white text-accent font-bold shadow-xs border border-accent/30'
+                      : 'text-secondaryText hover:text-primaryText'
+                  }`}
+                >
+                  Scenarios ({pickups.filter(p => isScenario(p)).length})
+                </button>
+              </div>
+            </div>
+
+            {/* Selectable Pickup Cards Horizontal Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 pt-1">
+              {filteredPickups.map((p) => {
+                const isSelected = selectedPickup?.id === p.id;
+                const statusMeta = getStatusMeta(p.status, 'pickup');
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => handleSelectPickup(p.id)}
+                    className={`p-3 rounded-[8px] border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#F4FAF6] border-forest ring-2 ring-forest/20 shadow-sm'
+                        : 'bg-[#FAFBF9] border-borderLine hover:bg-white hover:border-forest/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="font-mono text-xs font-bold text-primaryText">{p.id}</span>
+                      <Badge variant={statusMeta.variant} size="sm">{statusMeta.label}</Badge>
+                    </div>
+                    <div className="text-[11px] text-secondaryText flex items-center justify-between">
+                      <span>NGO: <strong className="text-primaryText font-medium">{p.ngo_id}</strong></span>
+                      <span className="font-medium text-primaryText">{p.quantity} units</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Full-Width Detailed Structured View */}
+          {selectedPickup && renderDetailCard(selectedPickup)}
+        </div>
       ) : (
+        /* SPLIT COLUMN VIEW (SIDEBAR DIRECTORY + MAIN WORKSPACE) */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column: Pickup List (Table View) */}
-          <div className="lg:col-span-5 space-y-3">
+          <div className="lg:col-span-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-secondaryText uppercase tracking-wider">
                 Dispatches ({filteredPickups.length})
               </span>
               <span className="text-[11px] text-secondaryText">
-                Select request to inspect
+                Select request
               </span>
             </div>
 
-            {/* Filter Tabs: All vs Live Operational vs Scenario Artifacts */}
+            {/* Filter Tabs */}
             <div className="flex items-center p-1 rounded-[7px] bg-[#FAFBF9] border border-borderLine text-xs">
               <button
                 type="button"
@@ -430,371 +975,8 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
 
           {/* Right Column: Detailed Structured View */}
           {selectedPickup && (
-            <div className="lg:col-span-7 space-y-5">
-              {(() => {
-                const statusMeta = getStatusMeta(selectedPickup.status, 'pickup');
-                const isPendingApproval = selectedPickup.status === 'PROPOSED';
-                const isReconfirmationNeeded = selectedPickup.status === 'RECONFIRMATION_REQUIRED';
-                const isApprovedAwaitingNgo = selectedPickup.status === 'APPROVED' && !selectedPickup.accepted_by_ngo;
-                const isNgoAccepted = selectedPickup.accepted_by_ngo && selectedPickup.status === 'ACCEPTED_BY_NGO';
-                const isCompleted = selectedPickup.status === 'VERIFIED_COMPLETE' || selectedPickup.status === 'COLLECTED';
-
-                return (
-                  <Card padding="md" className="space-y-5 border-l-4 border-l-forest">
-                    {/* 1. Clear Page Title & Current Status */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-borderLine">
-                      <div>
-                        <div className="flex items-center gap-2.5">
-                          <h3 className="font-heading font-bold text-lg text-primaryText font-mono">
-                            {selectedPickup.id}
-                          </h3>
-                          <Badge variant={statusMeta.variant}>
-                            {statusMeta.label}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-secondaryText mt-0.5">
-                          Proposal Version: <strong>v{selectedPickup.approval_version}</strong> • Created: {new Date(selectedPickup.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-
-                      <div className="text-right text-xs font-mono text-secondaryText">
-                        Donation Ref: <strong className="text-primaryText">{selectedPickup.donation_id}</strong>
-                      </div>
-                    </div>
-
-                    {/* 2. Prominent Location Alteration Warning if applicable (TC4) */}
-                    {isReconfirmationNeeded && (
-                      <div className="p-3.5 rounded-[8px] bg-[#FFFBFB] border border-[#F2C2BF] space-y-2 text-xs">
-                        <div className="flex items-center gap-2 text-brandError font-bold">
-                          <MapPin className="w-4 h-4" />
-                          <span>Drop-off Location Altered — Operator Reconfirmation Required (TC4)</span>
-                        </div>
-                        <p className="text-secondaryText leading-relaxed">
-                          The recipient NGO modified the destination facility post-approval. Under governance rules, the previous approval has been <strong>invalidated</strong>, the version incremented to <strong>v{selectedPickup.approval_version}</strong>, and fresh restaurant sign-off is mandated.
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
-                          <div className="p-2 rounded bg-white border border-borderLine">
-                            <span className="text-secondaryText block text-[10px] uppercase">Original Location:</span>
-                            <span className="text-primaryText">{selectedPickup.original_drop_off_location || 'Default Depot'}</span>
-                          </div>
-                          <div className="p-2 rounded bg-white border border-brandError/40">
-                            <span className="text-brandError block text-[10px] uppercase font-bold">New Proposed Location:</span>
-                            <span className="text-primaryText font-semibold">{selectedPickup.drop_off_location}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 3. Workflow Timeline */}
-                    <div className="space-y-2">
-                      <span className="text-[11px] font-semibold text-secondaryText uppercase tracking-wider block">
-                        Lifecycle State Machine
-                      </span>
-                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                        <div className="p-2 rounded-[6px] bg-[#FAFBF9] border border-borderLine">
-                          <span className="text-[10px] font-bold text-forest block">1. Proposed</span>
-                          <span className="text-[11px] text-brandSuccess font-semibold">Done</span>
-                        </div>
-                        <div className={`p-2 rounded-[6px] border ${
-                          selectedPickup.approved_by
-                            ? 'bg-[#EBF5EE] border-[#C7E3D0] text-brandSuccess'
-                            : isPendingApproval || isReconfirmationNeeded
-                            ? 'bg-[#FDF3E7] border-[#F2D7B3] text-brandWarning font-semibold'
-                            : 'bg-white border-borderLine text-secondaryText'
-                        }`}>
-                          <span className="text-[10px] font-bold block">2. Approval</span>
-                          <span className="text-[11px]">
-                            {selectedPickup.approved_by ? 'Approved' : 'Pending'}
-                          </span>
-                        </div>
-                        <div className={`p-2 rounded-[6px] border ${
-                          selectedPickup.accepted_by_ngo
-                            ? 'bg-[#EBF5EE] border-[#C7E3D0] text-brandSuccess'
-                            : 'bg-white border-borderLine text-secondaryText'
-                        }`}>
-                          <span className="text-[10px] font-bold block">3. NGO Accept</span>
-                          <span className="text-[11px]">
-                            {selectedPickup.accepted_by_ngo ? 'Accepted' : 'Pending'}
-                          </span>
-                        </div>
-                        <div className={`p-2 rounded-[6px] border ${
-                          isCompleted
-                            ? 'bg-[#EBF5EE] border-[#C7E3D0] text-brandSuccess font-semibold'
-                            : 'bg-white border-borderLine text-secondaryText'
-                        }`}>
-                          <span className="text-[10px] font-bold block">4. Verified</span>
-                          <span className="text-[11px]">
-                            {isCompleted ? 'Complete' : 'Pending'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 4. Donation & Pickup Summary */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-ivory/60 p-3.5 rounded-[8px] border border-borderLine">
-                      <div>
-                        <span className="text-secondaryText text-[11px] block">Target NGO ID:</span>
-                        <strong className="text-primaryText font-mono text-sm">{selectedPickup.ngo_id}</strong>
-                      </div>
-                      <div>
-                        <span className="text-secondaryText text-[11px] block">Quantity Dispatched:</span>
-                        <strong className="text-primaryText text-sm">{selectedPickup.quantity} units</strong>
-                      </div>
-                      <div>
-                        <span className="text-secondaryText text-[11px] block">Drop-off Destination:</span>
-                        <div className="flex items-center gap-1.5 font-medium text-primaryText mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-forest flex-shrink-0" />
-                          <span>{selectedPickup.drop_off_location}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-secondaryText text-[11px] block">Human Approval Audit:</span>
-                        <div className="mt-0.5">
-                          {selectedPickup.approved_by ? (
-                            <span className="text-brandSuccess font-semibold flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              Approved by {selectedPickup.approved_by}
-                            </span>
-                          ) : (
-                            <span className="text-brandWarning font-semibold flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                              Not Approved / Prior Approval Cleared
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 5. Approval & Action Controls Categorized By Actor */}
-                    <div className="space-y-4 pt-3 border-t border-borderLine">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-secondaryText uppercase tracking-wider">
-                          Lifecycle Control Panel (Role-Separated)
-                        </span>
-                        <span className="text-[10px] text-secondaryText bg-ivory px-2 py-0.5 rounded border border-borderLine">
-                          Simulates Real-World Multi-Party Interaction
-                        </span>
-                      </div>
-
-                      {/* Group A: Human Store Manager Gating (Step 04) */}
-                      {(isPendingApproval || isReconfirmationNeeded) && (
-                        <div className="p-3 rounded-[8px] bg-amber-50/60 border border-amber-200 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                              <ShieldCheck className="w-4 h-4 text-amber-700" />
-                              👤 Store Manager Sign-Off (Mandated by Hackathon Step 04)
-                            </span>
-                            <Badge variant="warning" size="sm">Human Approval Gate</Badge>
-                          </div>
-                          <p className="text-[11px] text-amber-800 leading-relaxed">
-                            The AI Agent matched the NGO and formulated this proposal. Before food leaves the store, human approval is mandatory to prevent unauthorized donation of inventory.
-                          </p>
-                          <div className="pt-1">
-                            {isPendingApproval && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => handleApprove(selectedPickup.id, selectedPickup.approval_version)}
-                                icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                              >
-                                Approve Proposal (Sign Off)
-                              </Button>
-                            )}
-                            {isReconfirmationNeeded && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                onClick={() => handleApprove(selectedPickup.id, selectedPickup.approval_version)}
-                                icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                              >
-                                Reconfirm New Location (v{selectedPickup.approval_version})
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Group B: Recipient NGO Portal Simulation (External Counter-Party) */}
-                      {(isApprovedAwaitingNgo || isNgoAccepted) && (
-                        <div className="p-3 rounded-[8px] bg-blue-50/50 border border-blue-200 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                              <Building2 className="w-4 h-4 text-blue-700" />
-                              🏢 Recipient NGO Portal (External Charity Simulation)
-                            </span>
-                            <Badge variant="info" size="sm">Counter-Party Portal</Badge>
-                          </div>
-                          <p className="text-[11px] text-blue-800 leading-relaxed">
-                            An AI agent cannot force an outside charity to accept food. In production, the recipient NGO driver receives the dispatch on their app. Use these buttons to simulate their response.
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2 pt-1">
-                            {isApprovedAwaitingNgo && (
-                              <>
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => handleAcceptByNGO(selectedPickup.id, selectedPickup.approval_version)}
-                                  icon={<UserCheck className="w-3.5 h-3.5 text-forest" />}
-                                >
-                                  NGO Portal: Confirm Acceptance
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleRejectByNGO(selectedPickup.id)}
-                                  icon={<XCircle className="w-3.5 h-3.5 text-brandError" />}
-                                  title="Recipient NGO declines dispatch in platform portal; donation returned to matching pool"
-                                >
-                                  NGO Portal: Decline
-                                </Button>
-                              </>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setTargetPickupId(selectedPickup.id);
-                                locationModalOpen ? null : setLocationModalOpen(true);
-                              }}
-                              icon={<MapPin className="w-3.5 h-3.5 text-accent" />}
-                              title="Recipient NGO alters drop-off facility in platform portal; triggers approval invalidation"
-                            >
-                              NGO Portal: Update Location
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Group C: Autonomous Agent Query Tool & Physical Handover */}
-                      <div className="p-3 rounded-[8px] bg-emerald-50/40 border border-emerald-200/80 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-forest flex items-center gap-1.5">
-                            <Sparkles className="w-4 h-4 text-forest" />
-                            🤖 AI Agent Tools & Physical Completion
-                          </span>
-                          <Badge variant="success" size="sm">Agent Tool Calling</Badge>
-                        </div>
-                        <p className="text-[11px] text-secondaryText leading-relaxed">
-                          The Agent uses its dedicated tool <code className="font-mono text-[10px] bg-white px-1 py-0.5 rounded border border-borderLine">tool_get_pickup_status</code> to poll the platform ledger directly without relying on stale local cache.
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQueryLiveStatus(selectedPickup.id)}
-                            isLoading={isQueryingStatus}
-                            icon={<Search className="w-3.5 h-3.5 text-forest" />}
-                            title="Run agent independent status-verification tool against Mock Donation Platform"
-                          >
-                            Agent: Query Platform Status
-                          </Button>
-
-                          {!isCompleted && (
-                            <Button
-                              variant={isNgoAccepted ? 'primary' : 'outline'}
-                              size="sm"
-                              onClick={() => handleVerifyCompletion(selectedPickup.id)}
-                              icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                              title={
-                                isNgoAccepted
-                                  ? 'Verify physical handoff at kitchen door'
-                                  : 'State machine guard: Cannot verify collection until recipient NGO accepts dispatch'
-                              }
-                            >
-                              Physical Driver Handover (Verify Collection)
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Recipient Acknowledgment Notice */}
-                      {isApprovedAwaitingNgo && (
-                        <div className="p-2.5 rounded-[6px] bg-[#FAFBF9] border border-borderLine text-[11px] text-secondaryText flex items-start gap-2">
-                          <Info className="w-3.5 h-3.5 text-forest flex-shrink-0 mt-0.5" />
-                          <span>
-                            <strong>Recipient Acknowledgment Pending:</strong> Dispatch is awaiting confirmation in the recipient NGO platform portal. Physical collection verification remains locked until accepted.
-                          </span>
-                        </div>
-                      )}
-
-                      {/* 6. Live Independent Platform State & Audit Evidence */}
-                      {(() => {
-                        const isVerifiedMatching = Boolean(
-                          verifiedQueryState && 
-                          (verifiedQueryState.pickup_id === selectedPickup.id || verifiedQueryState.retrieved_state?.pickup_id === selectedPickup.id)
-                        );
-                        return (
-                          <div className={`pt-3 border-t border-borderLine space-y-2.5 transition-all ${
-                            isVerifiedMatching ? 'bg-[#F4FAF6] -mx-4 px-4 py-3 rounded-b-[8px] border-t-2 border-t-brandSuccess' : ''
-                          }`}>
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-semibold text-secondaryText uppercase tracking-wider flex items-center gap-1.5">
-                                <Database className="w-3.5 h-3.5 text-forest" />
-                                <span>Independently Verified Platform State (SQLite Ledger)</span>
-                              </span>
-                              {isVerifiedMatching ? (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white text-brandSuccess border border-[#C7E3D0] font-bold flex items-center gap-1 shadow-2xs">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-brandSuccess" />
-                                  <span>VERIFIED LIVE AT {new Date(verifiedQueryState.query_timestamp).toLocaleTimeString()}</span>
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-mono text-secondaryText">
-                                  Live Database Record
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Direct Feedback Callout when tool executes */}
-                            {isVerifiedMatching && (
-                              <div className="p-2.5 rounded-[6px] bg-white border border-[#C7E3D0] text-xs text-brandSuccess flex items-start gap-2 shadow-2xs">
-                                <CheckCircle2 className="w-4 h-4 text-brandSuccess flex-shrink-0 mt-0.5" />
-                                <div className="space-y-0.5 text-primaryText">
-                                  <strong className="text-brandSuccess block font-heading">
-                                    Agent Query Tool Confirmed Database State:
-                                  </strong>
-                                  <span className="text-secondaryText text-[11px]">
-                                    Direct query against SQLite mock platform confirms dispatch <code className="font-mono font-bold text-primaryText bg-ivory px-1 rounded border border-borderLine">{selectedPickup.id}</code> is currently <strong>{verifiedQueryState.retrieved_state?.status}</strong> (NGO Accepted: {verifiedQueryState.retrieved_state?.accepted_by_ngo ? 'Yes' : 'No'}, Version: v{verifiedQueryState.retrieved_state?.approval_version}).
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-                              <div className="p-2 rounded bg-white border border-borderLine">
-                                <span className="text-secondaryText block text-[10px] uppercase font-sans">Database Status:</span>
-                                <strong className="text-primaryText">{isVerifiedMatching ? verifiedQueryState.retrieved_state.status : selectedPickup.status}</strong>
-                              </div>
-                              <div className="p-2 rounded bg-white border border-borderLine">
-                                <span className="text-secondaryText block text-[10px] uppercase font-sans">NGO Acceptance:</span>
-                                <span className={(isVerifiedMatching ? verifiedQueryState.retrieved_state.accepted_by_ngo : selectedPickup.accepted_by_ngo) ? 'text-brandSuccess font-bold' : 'text-brandWarning font-semibold'}>
-                                  {(isVerifiedMatching ? verifiedQueryState.retrieved_state.accepted_by_ngo : selectedPickup.accepted_by_ngo) ? 'Accepted by NGO' : 'Awaiting NGO'}
-                                </span>
-                              </div>
-                              <div className="p-2 rounded bg-white border border-borderLine">
-                                <span className="text-secondaryText block text-[10px] uppercase font-sans">Approval Version:</span>
-                                <span className="text-primaryText font-bold">v{(isVerifiedMatching ? verifiedQueryState.retrieved_state.approval_version : selectedPickup.approval_version)}</span>
-                              </div>
-                              <div className="p-2 rounded bg-white border border-borderLine">
-                                <span className="text-secondaryText block text-[10px] uppercase font-sans">Physical Handoff:</span>
-                                <span className={(isVerifiedMatching ? verifiedQueryState.retrieved_state.collected_at : selectedPickup.collected_at) ? 'text-brandSuccess font-bold' : 'text-secondaryText'}>
-                                  {(isVerifiedMatching ? verifiedQueryState.retrieved_state.collected_at : selectedPickup.collected_at) ? 'Verified Complete' : 'Pending Receipt'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {selectedPickup.accepted_at && (
-                              <div className="text-[11px] text-secondaryText bg-white p-2 rounded border border-borderLine flex items-center justify-between">
-                                <span>NGO Acceptance Timestamp: <strong className="font-mono text-primaryText">{new Date(selectedPickup.accepted_at).toLocaleString()}</strong></span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-ivory text-forest border border-forest/20 font-mono">CONFIRMED IN DB</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </Card>
-                );
-              })()}
+            <div className="lg:col-span-8 space-y-5">
+              {renderDetailCard(selectedPickup)}
             </div>
           )}
         </div>
