@@ -1,9 +1,11 @@
 import pytest
+import os
 import datetime
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.database import Base, engine, SessionLocal
+from backend.database import Base
 from backend.models import Restaurant, NGO, Donation, PickupRequest, AgentRun, PickupProposal, AuditEvent
 from backend.rules_engine import FoodSafetyEngine, NGOMatchingEngine
 from backend.mock_platform import MockPlatformService
@@ -14,15 +16,25 @@ from backend.graph import run_donation_workflow, resume_workflow_approval
 from backend.tools import tool_get_pickup_status
 from fastapi import HTTPException
 
+# Isolated test database to prevent tests from wiping user's live development database
+TEST_DB_FILE = Path(__file__).resolve().parent / "test_isolated.db"
+test_engine = create_engine(f"sqlite:///{TEST_DB_FILE}", connect_args={"check_same_thread": False})
+TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
 @pytest.fixture
 def db_session():
-    Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
+    Base.metadata.create_all(bind=test_engine)
+    session = TestSessionLocal()
     seed_database(session)
     try:
         yield session
     finally:
         session.close()
+        try:
+            if TEST_DB_FILE.exists():
+                os.remove(TEST_DB_FILE)
+        except Exception:
+            pass
 
 def test_food_safety_rules():
     now = datetime.datetime.utcnow()

@@ -122,7 +122,12 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       });
       await loadPickups();
     } catch (err: any) {
-      setError(err.message);
+      await loadPickups();
+      if (err.message && err.message.includes('404')) {
+        setError(`Pickup record '${id}' was not found in the platform database. The list has been refreshed to sync with live records.`);
+      } else {
+        setError(err.message);
+      }
     }
   };
 
@@ -147,7 +152,12 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       });
       await loadPickups();
     } catch (err: any) {
-      setError(`Acceptance Guard: ${err.message}`);
+      await loadPickups();
+      if (err.message && err.message.includes('404')) {
+        setError(`Pickup record '${id}' was not found in the platform database. The list has been refreshed to sync with live records.`);
+      } else {
+        setError(`Acceptance Guard: ${err.message}`);
+      }
     }
   };
 
@@ -166,7 +176,12 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
         message: `Agent queried mock platform database. State verified: "${verifyRes.retrieved_state.status}" (NGO Accepted: ${verifyRes.retrieved_state.accepted_by_ngo ? 'Yes' : 'No'}, Version: v${verifyRes.retrieved_state.approval_version}).`
       });
     } catch (err: any) {
-      setError(`Platform Query Error: ${err.message}`);
+      await loadPickups();
+      if (err.message && err.message.includes('404')) {
+        setError(`Pickup record '${id}' was not found in the platform database. The list has been refreshed.`);
+      } else {
+        setError(`Platform Query Error: ${err.message}`);
+      }
     } finally {
       setIsQueryingStatus(false);
     }
@@ -183,6 +198,7 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       });
       await loadPickups();
     } catch (err: any) {
+      await loadPickups();
       setError(err.message);
     }
   };
@@ -201,6 +217,7 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       setLocationModalOpen(false);
       await loadPickups();
     } catch (err: any) {
+      await loadPickups();
       setError(err.message);
     } finally {
       setIsSubmitting(false);
@@ -224,7 +241,12 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
       });
       await loadPickups();
     } catch (err: any) {
-      setError(`Platform Guard: ${err.message}`);
+      await loadPickups();
+      if (err.message && err.message.includes('404')) {
+        setError(`Pickup record '${id}' was not found in the live database (the database may have been reset). The dispatches list has been refreshed.`);
+      } else {
+        setError(`Platform Guard: ${err.message}`);
+      }
     }
   };
 
