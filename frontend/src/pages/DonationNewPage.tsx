@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   PackageCheck,
   Building2,
-  Info
+  Info,
+  Sparkles
 } from 'lucide-react';
 
 interface DonationNewPageProps {
@@ -142,6 +143,7 @@ export const DonationNewPage: React.FC<DonationNewPageProps> = ({ onNavigate }) 
 
       const result = await api.createDonation(payload);
       setSuccessDonation(result);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setError(err.message || 'Failed to persist donation record.');
     } finally {
@@ -480,26 +482,155 @@ export const DonationNewPage: React.FC<DonationNewPageProps> = ({ onNavigate }) 
           </div>
         </Card>
 
-        {/* Form Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onNavigate('/donations')}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
+        {/* Form Actions or Success State */}
+        {successDonation ? (
+          <div className="p-4 rounded-[10px] bg-[#EBF5EE] border border-[#C7E3D0] space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-brandSuccess flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-sm text-primaryText">
+                    Donation Successfully Registered! ({successDonation.id})
+                  </h4>
+                  <p className="text-xs text-secondaryText">
+                    Status: <strong className="text-forest">{getStatusMeta(successDonation.status).label}</strong>. Ready for autonomous AI agent matching.
+                  </p>
+                </div>
+              </div>
+              <Badge variant={getStatusMeta(successDonation.status).variant}>
+                {getStatusMeta(successDonation.status).label}
+              </Badge>
+            </div>
 
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={isLoading}
-          >
-            Register Donation Batch
-          </Button>
-        </div>
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-[#C7E3D0]/60">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSuccessDonation(null);
+                  setFoodName('');
+                  setDescription('');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                + Register Another Batch
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate('/donations')}
+              >
+                View Donations Directory
+              </Button>
+              {successDonation.status === 'AWAITING_MATCH' && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onNavigate('/matching')}
+                  icon={<Sparkles className="w-4 h-4" />}
+                >
+                  Proceed to NGO Matching (Next Step)
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onNavigate('/donations')}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isLoading}
+              icon={<CheckCircle2 className="w-4 h-4" />}
+            >
+              Register Donation Batch
+            </Button>
+          </div>
+        )}
       </form>
+
+      {/* Centered Success Modal for Immediate Visual Confirmation */}
+      {successDonation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-[12px] max-w-lg w-full p-6 space-y-5 border border-borderLine shadow-xl">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-borderLine">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#EBF5EE] border border-[#C7E3D0] flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-6 h-6 text-brandSuccess" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-lg text-primaryText">
+                    Donation Batch Registered!
+                  </h3>
+                  <p className="text-xs font-mono text-secondaryText">
+                    ID: <strong className="text-primaryText">{successDonation.id}</strong> • Status: <span className="text-brandSuccess font-bold font-sans">{getStatusMeta(successDonation.status).label}</span>
+                  </p>
+                </div>
+              </div>
+              <Badge variant={getStatusMeta(successDonation.status).variant}>
+                {getStatusMeta(successDonation.status).label}
+              </Badge>
+            </div>
+
+            <div className="bg-ivory/70 p-3.5 rounded-[8px] border border-borderLine text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-secondaryText">Food Item:</span>
+                <strong className="text-primaryText">{successDonation.food_name || foodName} ({successDonation.quantity} {successDonation.unit})</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-secondaryText">Food Safety Engine:</span>
+                <span className="text-brandSuccess font-semibold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Validated Under FDA §3-501.19
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-secondaryText">Next Step in Pipeline:</span>
+                <span className="text-primaryText font-medium">Autonomous NGO Capacity & Transit Match</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSuccessDonation(null);
+                  setFoodName('');
+                  setDescription('');
+                }}
+                className="w-full sm:w-auto"
+              >
+                + Register Another Batch
+              </Button>
+              {successDonation.status === 'AWAITING_MATCH' && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onNavigate('/matching')}
+                  icon={<Sparkles className="w-4 h-4" />}
+                  className="w-full sm:w-auto"
+                >
+                  Proceed to NGO Matching
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
