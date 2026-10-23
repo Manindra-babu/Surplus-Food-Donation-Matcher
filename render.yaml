@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: foodbridge-ai
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PRODUCT_NAME
+        value: FoodBridge AI

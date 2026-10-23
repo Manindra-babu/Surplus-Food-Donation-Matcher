@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <!-- Brand Background Rounded Rectangle -->
+  <rect width="48" height="48" rx="10" fill="#245B45"/>
+  
+  <!-- Food Container Base -->
+  <path d="M12 23C12 21.8954 12.8954 21 14 21H34C35.1046 21 36 21.8954 36 23V30C36 33.3137 33.3137 36 30 36H18C14.6863 36 12 33.3137 12 30V23Z" fill="#FAF8F2"/>
+  
+  <!-- Connection Bridge Arch (Food rescue conduit) -->
+  <path d="M18 21V18C18 14.6863 20.6863 12 24 12C27.3137 12 30 14.6863 30 18V21" stroke="#FAF8F2" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Warm Safety & Freshness Core Node -->
+  <circle cx="24" cy="28.5" r="3.5" fill="#D97745"/>
+</svg>
