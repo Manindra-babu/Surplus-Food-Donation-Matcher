@@ -22,7 +22,9 @@ import {
   FileCode,
   Search,
   Database,
-  Activity
+  Activity,
+  Building2,
+  Sparkles
 } from 'lucide-react';
 
 interface PickupsPageProps {
@@ -563,106 +565,146 @@ export const PickupsPage: React.FC<PickupsPageProps> = ({ onNavigate }) => {
                       </div>
                     </div>
 
-                    {/* 5. Approval & Action Controls */}
-                    <div className="space-y-3 pt-2 border-t border-borderLine">
-                      <span className="text-[11px] font-semibold text-secondaryText uppercase tracking-wider block">
-                        Operational Controls
-                      </span>
+                    {/* 5. Approval & Action Controls Categorized By Actor */}
+                    <div className="space-y-4 pt-3 border-t border-borderLine">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-secondaryText uppercase tracking-wider">
+                          Lifecycle Control Panel (Role-Separated)
+                        </span>
+                        <span className="text-[10px] text-secondaryText bg-ivory px-2 py-0.5 rounded border border-borderLine">
+                          Simulates Real-World Multi-Party Interaction
+                        </span>
+                      </div>
 
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        {/* Initial Approval Action */}
-                        {isPendingApproval && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleApprove(selectedPickup.id, selectedPickup.approval_version)}
-                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                          >
-                            Approve Proposal (Sign Off)
-                          </Button>
-                        )}
+                      {/* Group A: Human Store Manager Gating (Step 04) */}
+                      {(isPendingApproval || isReconfirmationNeeded) && (
+                        <div className="p-3 rounded-[8px] bg-amber-50/60 border border-amber-200 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                              <ShieldCheck className="w-4 h-4 text-amber-700" />
+                              👤 Store Manager Sign-Off (Mandated by Hackathon Step 04)
+                            </span>
+                            <Badge variant="warning" size="sm">Human Approval Gate</Badge>
+                          </div>
+                          <p className="text-[11px] text-amber-800 leading-relaxed">
+                            The AI Agent matched the NGO and formulated this proposal. Before food leaves the store, human approval is mandatory to prevent unauthorized donation of inventory.
+                          </p>
+                          <div className="pt-1">
+                            {isPendingApproval && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleApprove(selectedPickup.id, selectedPickup.approval_version)}
+                                icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                              >
+                                Approve Proposal (Sign Off)
+                              </Button>
+                            )}
+                            {isReconfirmationNeeded && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => handleApprove(selectedPickup.id, selectedPickup.approval_version)}
+                                icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                              >
+                                Reconfirm New Location (v{selectedPickup.approval_version})
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
-                        {/* Reconfirmation Action for altered location (TC4) */}
-                        {isReconfirmationNeeded && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleApprove(selectedPickup.id, selectedPickup.approval_version)}
-                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                          >
-                            Reconfirm New Location (v{selectedPickup.approval_version})
-                          </Button>
-                        )}
+                      {/* Group B: Recipient NGO Portal Simulation (External Counter-Party) */}
+                      {(isApprovedAwaitingNgo || isNgoAccepted) && (
+                        <div className="p-3 rounded-[8px] bg-blue-50/50 border border-blue-200 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                              <Building2 className="w-4 h-4 text-blue-700" />
+                              🏢 Recipient NGO Portal (External Charity Simulation)
+                            </span>
+                            <Badge variant="info" size="sm">Counter-Party Portal</Badge>
+                          </div>
+                          <p className="text-[11px] text-blue-800 leading-relaxed">
+                            An AI agent cannot force an outside charity to accept food. In production, the recipient NGO driver receives the dispatch on their app. Use these buttons to simulate their response.
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            {isApprovedAwaitingNgo && (
+                              <>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleAcceptByNGO(selectedPickup.id, selectedPickup.approval_version)}
+                                  icon={<UserCheck className="w-3.5 h-3.5 text-forest" />}
+                                >
+                                  NGO Portal: Confirm Acceptance
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRejectByNGO(selectedPickup.id)}
+                                  icon={<XCircle className="w-3.5 h-3.5 text-brandError" />}
+                                  title="Recipient NGO declines dispatch in platform portal; donation returned to matching pool"
+                                >
+                                  NGO Portal: Decline
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setTargetPickupId(selectedPickup.id);
+                                locationModalOpen ? null : setLocationModalOpen(true);
+                              }}
+                              icon={<MapPin className="w-3.5 h-3.5 text-accent" />}
+                              title="Recipient NGO alters drop-off facility in platform portal; triggers approval invalidation"
+                            >
+                              NGO Portal: Update Location
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
-                        {/* NGO Portal: Confirm Acceptance */}
-                        {isApprovedAwaitingNgo && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleAcceptByNGO(selectedPickup.id, selectedPickup.approval_version)}
-                            icon={<UserCheck className="w-3.5 h-3.5 text-forest" />}
-                          >
-                            NGO Portal: Confirm Acceptance
-                          </Button>
-                        )}
-
-                        {/* NGO Portal: Decline Request */}
-                        {isApprovedAwaitingNgo && (
+                      {/* Group C: Autonomous Agent Query Tool & Physical Handover */}
+                      <div className="p-3 rounded-[8px] bg-emerald-50/40 border border-emerald-200/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-forest flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-forest" />
+                            🤖 AI Agent Tools & Physical Completion
+                          </span>
+                          <Badge variant="success" size="sm">Agent Tool Calling</Badge>
+                        </div>
+                        <p className="text-[11px] text-secondaryText leading-relaxed">
+                          The Agent uses its dedicated tool <code className="font-mono text-[10px] bg-white px-1 py-0.5 rounded border border-borderLine">tool_get_pickup_status</code> to poll the platform ledger directly without relying on stale local cache.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleRejectByNGO(selectedPickup.id)}
-                            icon={<XCircle className="w-3.5 h-3.5 text-brandError" />}
-                            title="Recipient NGO declines dispatch in platform portal; donation returned to matching pool"
+                            onClick={() => handleQueryLiveStatus(selectedPickup.id)}
+                            isLoading={isQueryingStatus}
+                            icon={<Search className="w-3.5 h-3.5 text-forest" />}
+                            title="Run agent independent status-verification tool against Mock Donation Platform"
                           >
-                            NGO Portal: Decline
+                            Agent: Query Platform Status
                           </Button>
-                        )}
 
-                        {/* NGO Portal: Change Destination Location */}
-                        {(isApprovedAwaitingNgo || isNgoAccepted) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setTargetPickupId(selectedPickup.id);
-                              setLocationModalOpen(true);
-                            }}
-                            icon={<MapPin className="w-3.5 h-3.5 text-accent" />}
-                            title="Recipient NGO alters drop-off facility in platform portal; triggers approval invalidation"
-                          >
-                            NGO Portal: Update Location
-                          </Button>
-                        )}
-
-                        {/* Verify Collection */}
-                        {!isCompleted && (
-                          <Button
-                            variant={isNgoAccepted ? 'primary' : 'outline'}
-                            size="sm"
-                            onClick={() => handleVerifyCompletion(selectedPickup.id)}
-                            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-                            title={
-                              isNgoAccepted
-                                ? 'Verify physical handoff in platform database'
-                                : 'State machine guard: Cannot verify collection until recipient NGO accepts dispatch'
-                            }
-                          >
-                            Verify Collection
-                          </Button>
-                        )}
-
-                        {/* Independent Agent Status Query Tool */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleQueryLiveStatus(selectedPickup.id)}
-                          isLoading={isQueryingStatus}
-                          icon={<Search className="w-3.5 h-3.5 text-forest" />}
-                          title="Run agent independent status-verification tool against Mock Donation Platform"
-                        >
-                          Agent: Query Platform Status
-                        </Button>
+                          {!isCompleted && (
+                            <Button
+                              variant={isNgoAccepted ? 'primary' : 'outline'}
+                              size="sm"
+                              onClick={() => handleVerifyCompletion(selectedPickup.id)}
+                              icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                              title={
+                                isNgoAccepted
+                                  ? 'Verify physical handoff at kitchen door'
+                                  : 'State machine guard: Cannot verify collection until recipient NGO accepts dispatch'
+                              }
+                            >
+                              Physical Driver Handover (Verify Collection)
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Recipient Acknowledgment Notice */}
