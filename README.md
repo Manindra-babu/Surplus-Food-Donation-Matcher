@@ -1,5 +1,12 @@
 # FoodBridge AI — AI-Powered Surplus Food Donation & Rescue Coordination Platform
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-245B45?style=for-the-badge&logo=render&logoColor=white)](https://foodbridge-ai-uav5.onrender.com/)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://foodbridge-ai-uav5.onrender.com/api/health)
+[![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-FF6F00?style=for-the-badge&logo=python&logoColor=white)](https://foodbridge-ai-uav5.onrender.com/)
+[![React](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://foodbridge-ai-uav5.onrender.com/)
+
+> 🌐 **Live Production Deployment:** [https://foodbridge-ai-uav5.onrender.com/](https://foodbridge-ai-uav5.onrender.com/)
+
 **FoodBridge AI** is an intelligent, auditable food rescue coordination platform connecting commercial restaurant kitchens with verified NGOs capable of collecting surplus food safely and on time.
 
 The system enforces evidence-backed food-safety policies (FDA Food Code §3-501.19 / Codex Alimentarius), NGO capacity constraints, strict human approval gating, location alteration invalidation, and independent status verification.
