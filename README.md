@@ -220,6 +220,7 @@ python -m pytest backend/test_backend.py -v
 * **No Premature Dispatches:** Pickups cannot execute without human sign-off; physical handoff is blocked until the recipient NGO confirms receipt.
 * **Cryptographic Event Trail:** Every lifecycle transition generates an immutable `AuditEvent` with actor identification, version tags, and timestamps.
 * **Time-as-a-Public-Health-Control (TPHC):** Adheres to FDA 4-hour temperature safety limits to protect community welfare.
+* **Zero-Crash Deterministic Fallback:** Dual-layer architecture pairs Gemini Flash with deterministic fallback engines, guaranteeing continuous operation even during API quotas or network dropouts.
 
 ---
 
