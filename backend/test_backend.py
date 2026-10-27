@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.database import Base
+from backend.database import Base, SessionLocal, engine as default_engine
 from backend.models import Restaurant, NGO, Donation, PickupRequest, AgentRun, PickupProposal, AuditEvent
 from backend.rules_engine import FoodSafetyEngine, NGOMatchingEngine
 from backend.mock_platform import MockPlatformService
@@ -23,13 +23,16 @@ TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_eng
 
 @pytest.fixture
 def db_session():
+    os.environ["TESTING"] = "true"
     Base.metadata.create_all(bind=test_engine)
+    SessionLocal.configure(bind=test_engine)
     session = TestSessionLocal()
     seed_database(session)
     try:
         yield session
     finally:
         session.close()
+        SessionLocal.configure(bind=default_engine)
         try:
             if TEST_DB_FILE.exists():
                 os.remove(TEST_DB_FILE)

@@ -93,7 +93,19 @@ export const MatchingPage: React.FC<MatchingPageProps> = ({ onNavigate }) => {
       setApprovalModalOpen(false);
       await loadDonations();
     } catch (err: any) {
-      setError(err.message || 'Failed to approve pickup.');
+      const errMsg = err.message || 'Failed to approve pickup.';
+      if (errMsg.includes('not found') || errMsg.includes('404')) {
+        setError(`Proposal ${evaluation.pickup_request_id} expired or database was reset. Refreshing matching...`);
+        setApprovalModalOpen(false);
+        setEvaluation(null);
+        if (selectedDonationId) {
+          setTimeout(() => {
+            handleRunMatching();
+          }, 400);
+        }
+      } else {
+        setError(errMsg);
+      }
     } finally {
       setIsApproving(false);
     }

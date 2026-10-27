@@ -63,8 +63,8 @@ class LLMAdapter:
         """
         Parses unstructured natural language text from a kitchen donor into a validated structure.
         """
-        if self.provider == "gemini" and self.client:
-            models_to_try = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+        if self.provider == "gemini" and self.client and os.getenv("TESTING") != "true":
+            models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
             prompt = (
                 f"You are the donation intake parser for {PRODUCT_NAME}. Extract structured food rescue details "
                 f"from this donor message:\n\"{text}\"\n\n"
@@ -126,8 +126,8 @@ class LLMAdapter:
         """
         Generates an auditable, evidence-backed operational rationale for candidate selection.
         """
-        if self.provider == "gemini" and self.client:
-            models_to_try = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+        if self.provider == "gemini" and self.client and os.getenv("TESTING") != "true":
+            models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
             prompt = (
                 f"You are the coordination intelligence for {PRODUCT_NAME}. Provide a concise 2-sentence operational explanation "
                 f"for dispatching {donation.get('quantity')} {donation.get('unit', 'meal_boxes')} of '{donation.get('food_name')}' ({donation.get('food_type')}) to "

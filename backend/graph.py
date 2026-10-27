@@ -271,6 +271,15 @@ def node_prepare_pickup_proposal(state: FoodBridgeAgentState) -> FoodBridgeAgent
             ngo_id=selected_ngo["ngo_id"],
             thread_id=state.get("run_id")
         )
+        if not proposal_res or "proposal_id" not in proposal_res:
+            state["status"] = "FAILED"
+            state["final_outcome"] = "proposal_creation_failed"
+            _append_trace(
+                state, 7, "PREPARE_PICKUP_PROPOSAL", "FAILED",
+                proposal_res.get("error", "Failed to create pickup proposal") if proposal_res else "No response"
+            )
+            return state
+
         state["proposal_id"] = proposal_res["proposal_id"]
         state["proposal_version"] = proposal_res.get("proposal_version", 1)
 
